@@ -41,7 +41,7 @@ def relevant_set():
         else:
             relevant[lines[0]] = [lines[2] + ".txt"]
 
-    for i in xrange(1, 65):
+    for i in range(1, 65):
         if relevant.has_key(str(i)):
             pass
         else:

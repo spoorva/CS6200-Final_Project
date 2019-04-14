@@ -29,8 +29,8 @@ def get_content():
                 write_to_file(processed_text, article_name)
                 f.close()
     except:
-        print 'Error in try block of fetch_content!'
-        print traceback.format_exc()
+        print ('Error in try block of fetch_content!')
+        print (traceback.format_exc())
 
 
 # Function to perform text transformation on the string provided to it as argument

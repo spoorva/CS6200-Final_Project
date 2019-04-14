@@ -35,7 +35,8 @@ def get_content():
 
 # Function to perform text transformation on the string provided to it as argument
 def text_transformation(content):
-    content = re.sub(r'[@_!\s^&*?#=+$~%:;\\/|<>(){}[\]"\']', ' ', content)
+    #@poorva - changed a few things here. Let the apostophe remain
+    content = re.sub(r'[@_!\s^&*?#=+$~%:;\\/|<>(){}[\]"]', ' ', content)
     content_word_list = []
     for word in content.split():
         word_length = len(word)
