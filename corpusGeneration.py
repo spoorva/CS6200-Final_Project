@@ -4,7 +4,6 @@ import glob
 import re
 import traceback
 
-# Defining global variables
 all_files = []
 directory = 'Corpus'
 
