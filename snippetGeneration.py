@@ -1,124 +1,177 @@
+import io
+import os
+import Parser
+import re
 import operator
-import QueryRead
-import snippetCorpusGeneration
 
-# Defining global variables
-snippetCorpusGeneration.get_content()
-stopwords = QueryRead.stop_words()
+CORPUS_PATH = os.path.join(os.getcwd(), "cacm")
+INVERTED_INDEX = {}
 
 
-# Function to check if the term is present in query or not
-def term_in_query(term, query):
-    if term.lower() in query.split() and term.lower() not in stopwords:
-        return True
-    return False
+def snippet_selector(doc, query_terms):
+    filename = os.path.join(CORPUS_PATH, doc + ".html")
+    with io.open(filename, "r", encoding="utf-8") as raw_file:
+
+        lines = raw_file.read()
+
+        # Parse
+    body_content = Parser.parse_html_doc(lines)
+
+    # Identify sentences
+    sentences = re.split(r"\.[\s\n]+", body_content)
+
+    # Populating significant word list
+    significant_words = find_sig_words(sentences, doc, query_terms)
+
+    # Generate scores for each sentence.
+    sentence_scores = {}
+    for line in sentences:
+        sentence_scores[line] = significance_factor(line, significant_words)
+    sorted_sentence_scores = sorted(sentence_scores.items(), key=operator.itemgetter(1), reverse=True)
+    # sorted_sentence_scores = sorted(sentence_scores, key=sentence_scores.get, reverse = True)
+    snippet = []
+
+    if sorted_sentence_scores[0][1] == 0:
+        return snippet
+
+    # if sorted_sentence_scores.values()[0] == 0:
+    #    return snippet
+
+    count = 0
+    for sentence, score in sorted_sentence_scores:
+        # Selecting top 2 snippets
+        if count < 4:
+            snippet.append(sentence)
+            count += 1
+
+    return snippet
 
 
-# Function to get first index of significant word window
-def get_first_index(sentence, query):
-    for term in sentence:
-        if term_in_query(term, query):
-            return sentence.index(term)
+def significance_factor(line, significant_words):
+    # Calculating the significance factor for a line of text
 
+    # Case-folded comparision
+    words = line.split()
+    words = [x.casefold() for x in words]
+    significant_words = [x.casefold() for x in significant_words]
 
-# Function to get last index of significant word window
-def get_last_index(sentence, query):
-    for index in range(len(sentence) - 1, -1, -1):
-        if term_in_query(sentence[index], query):
-            return index + 1
+    # Find the start of span
+    start = 0
+    for word in words:
 
+        if word in significant_words:  # word_in_query(word,query_terms):
+            start = words.index(word)
+            break
 
-# Function to calculate significance factor
-# calculates significance factor = (square of no. of significant terms) / total words in significant word window
-def calc_significance_factor(sentence, query):
-    n_significant_terms = 0
+    # find the end of span
+    end = 0
+    for i in range(len(words) - 1, 0, -1):
+        if words[i] in significant_words:  # word_in_query(words[i],query_terms):
+            end = i
+            break
 
-    s = sentence.split()
+    # count the number of significance words in this span
+    count = 0
+    for x in words[start:end]:
+        if x in significant_words:  # word_in_query(x,query_terms):
+            count += 1
 
-    first_index = get_first_index(s, query)  # get first index matching query
-    last_index = get_last_index(s, query)  # get last index matching query
-
-    for term_in_window in s[first_index: last_index]:
-        if term_in_query(term_in_window, query):
-            n_significant_terms += 1
-
-    if len(s[first_index: last_index]) == 0:
-        return 0.0
+    if count == 0:
+        return 0
     else:
-        return round(float(n_significant_terms * n_significant_terms) / len(s[first_index: last_index]), 2)
+        span = (end - start + 1)
+        return (count * count) / span
 
 
-# Function to generate snippet
-def generate_snippet(f, query):
-    q_dict = {}
-    for lines in open("Phase_1_Output/Task_3a_BM25.txt", 'r').readlines():
-        result = lines.split(" ")
-        if q_dict.has_key(result[0]):
-            q_dict[result[0]] += ["Snippet_Corpus/" + result[2] + ".txt"]
-        else:
-            q_dict[result[0]] = ["Snippet_Corpus/" + result[2] + ".txt"]
+def find_sig_words(sentences, doc, query_terms):
+    sig_words = []
+    # sd = number of sentences in the document
+    sd = len(sentences)
 
-    for each_query in xrange(1, 65):
-        each_query = str(each_query)
-        sentence_significance_dict = {}
+    with open('common_words') as f:
+        stopwords = f.read().splitlines()
 
-        f.write("Snippet Generation for Query id: " + each_query + "\n\n")
+    for sentence in sentences:
+        words = sentence.split()
+        for word in words:
+            if word not in stopwords:
+                processed_word = process_word(word)
+                if processed_word == '':
+                    continue
+                fdw = INVERTED_INDEX[processed_word][doc]
+                if (check_threshold(sd, fdw)) and word not in sig_words:
+                    sig_words.append(word)
 
-        for corpus_file in q_dict[each_query][:10]:
-            # Change the value of index from 10 to desired number of docs for snippet generation in above line
-            if not corpus_file.startswith('.'):
-                sentence_significance_dict = {}
-                sentences = open(corpus_file).read().splitlines()
-                for sentence in sentences:
-                    if sentence:
-                        sentence_significance_dict[sentence] = calc_significance_factor(sentence,
-                                                                                        query[int(each_query)])
+    for term in query_terms:
+        if not word_in_query(term, sig_words):
+            sig_words.append(term)
 
-            sorted_dict = sorted(sentence_significance_dict.items(), key=operator.itemgetter(1), reverse=True)
-
-            counter = 0
-            snippet_lst = []
-            flag = False
-            for key, val in sorted_dict:
-                if counter == 0 and val == 0.0:
-                    flag = False
-                    break
-                if counter < 3:
-                    snippet_lst.append(key)
-                    counter += 1
-                    flag = True
-            if flag:
-                write_to_file(f, corpus_file, snippet_lst, query[int(each_query)])  # Calling function to write in file
+    return sig_words
 
 
-# Function to write data in file
-def write_to_file(f, corpus_file, snippet_list, query):
-    line = ""
-    for snippet in snippet_list:
-        for term in snippet.split(" "):
-            if term.lower() in query.split(" ") and term.lower() not in stopwords:
-                line += "<b> " + term + " </b>" + " "
-            else:
-                line += term + " "
-        line += "...\n"
-    f.write("Snippet for file " + corpus_file + " : \n")
-    f.write(line + "\n")
+def process_word(word):
+    word = word.casefold()
+    word = Parser.remove_punctuation(word)
+    return word
 
 
-# Main function
-if __name__ == '__main__':
-    query_dict = QueryRead.read_query_file()
-    for each in query_dict:
-        temp = ""
-        i = 0
-        for item in query_dict[each]:
-            if i == 0:
-                temp += item
-            else:
-                temp += " " + item
-            i += 1
-        query_dict[each] = temp
+def check_threshold(sd, fdw):
+    # threshold = 0
+    if sd < 25:
+        threshold = 7 - float(0.1) * float(25 - sd)
+    elif 40 >= sd >= 25:
+        threshold = 7
+    else:
+        threshold = 7 + float(0.1) * float(sd - 40)
 
-    with open("Bonus_tasks_Output/Snippets.txt", 'w') as f:
-        generate_snippet(f, query_dict)
-        f.close()
+    # if frequency of word greater than threshold, it is significant.
+    if fdw >= threshold:
+        return True
+    else:
+        return False
+
+
+def word_in_query(word, query_terms):
+    # Returns true if the given word is present in the query
+    # query_terms = query.split()
+    # Case fold
+    query_terms = [x.casefold() for x in query_terms]
+
+    if word.casefold() in query_terms:
+        return True
+    else:
+        return False
+
+
+def snippet_generator(doc_list, query, inverted_index):
+    global INVERTED_INDEX
+    INVERTED_INDEX = inverted_index
+    # Query stopping
+    with open('common_words') as f:
+        stopwords = f.read().splitlines()
+    query_terms = query.split()
+    ''' for term in query_terms:
+        if term in stopwords:
+            query_terms.remove(term) '''
+
+    query_terms = [x for x in query_terms if x not in stopwords]
+
+    for doc in doc_list:
+        snippet_lines = snippet_selector(doc, query_terms)
+
+        if len(snippet_lines) == 0:
+            continue
+        result = ""
+        print("***** " + doc + " *****")
+        for line in snippet_lines:
+
+            result += ".."
+            for word in line.split():
+                if word_in_query(word, query_terms):
+                    result += ('\033[1m' + '\033[91m' + word + '\033[0m' + " ")
+                else:
+                    result += (word + " ")
+
+            result += "..\n"
+        print(result)
+        print("!***** END of " + doc + " *****!\n")
