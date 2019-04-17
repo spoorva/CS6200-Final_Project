@@ -61,7 +61,7 @@ def text_transformation(content):
 # Function to remove irrelevant punctuations before a word
 def remove_punctuation(word):
     while word[:1] == "-" or word[:1] == "," or word[:1] == ".":
-        if re.match(r'^[\-]?[0-9]*\.?[0-9]+$', word):
+        if re.match(r'^[\-]?[0-9]*\.?[0-9]+$\\', word):
             return word
         if word[:1] == "-" or word[:1] == "." or word[:1] == ",":
             word = word[1:]
