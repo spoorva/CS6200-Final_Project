@@ -1,0 +1,2 @@
+MAP for Lucene is: 0.23494328231112346
+MRR for Lucene is: 0.5727203072103751
