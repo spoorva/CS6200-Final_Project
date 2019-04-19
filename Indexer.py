@@ -1,7 +1,5 @@
 import io
-# import glob, os
 from pprint import pprint
-# import sys
 import Parser
 
 # GLOBAL CONSTANTS

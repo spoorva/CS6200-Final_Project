@@ -9,6 +9,8 @@ CURRENT_DIR = os.getcwd()
 CORPUS_PATH = os.path.join(CURRENT_DIR, "cacm")
 DOC_TOKENS_MAP = {}
 TOKENIZED_CORPUS_PATH = os.path.join(CORPUS_PATH, r"TokenizedFile")
+ps = string.punctuation
+trans = str.maketrans(ps, "                                ")
 
 
 def Tokenizer(filename):
@@ -58,27 +60,11 @@ def case_fold(tokens):
 def punctuation_handler(tokens):
     punct_removed = []
     for token in tokens:
-        punct_removed.append(remove_punctuation(token))
+        punct_removed.append(token.translate(trans).strip())
 
     # Remove white-space tokens
     regex = re.compile('\S')
     return list(filter(regex.search, punct_removed))
-
-
-def remove_punctuation(s):
-    # Remove unnecessary punctuation.
-    s = re.sub(r'[^a-zA-Z0-9\-,.–:]', '', str(s))
-    # Remove trailing punctuation.
-    s = s.strip(string.punctuation)
-
-    number_matcher = re.compile(r'[0-9]+([\d[,.:]?]?\d)*[-.%–]?([\d[,.:]?]?\d)*$')
-
-    if number_matcher.match(s):
-        return s
-    else:
-        str_form = re.sub(r'[^a-zA-Z0-9\-–]', '', s)
-        str_form = str_form.strip(string.punctuation)
-        return str_form
 
 
 def save_tokens_to_file(tokens, file):
