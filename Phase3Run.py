@@ -183,7 +183,6 @@ if __name__ == '__main__':
 
         # Calculating BM25 scores for the stopped query
         scores = BM25_score(stopped_q)
-
         write_to_file(scores, QUERY_ID)
 
-        print("Completed retrieval for - ", stopped_q)
+        print("Completed retrieval for -", stopped_q)
