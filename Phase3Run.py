@@ -186,4 +186,4 @@ if __name__ == '__main__':
 
         write_to_file(scores, QUERY_ID)
 
-        print("Completed retrieval for - ", stopped_q)
+        print("Completed retrieval for -", stopped_q)
