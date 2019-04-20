@@ -8,7 +8,7 @@ import string
 CURRENT_DIR = os.getcwd()
 CORPUS_PATH = os.path.join(CURRENT_DIR, "cacm")
 DOC_TOKENS_MAP = {}
-TOKENIZED_CORPUS_PATH = os.path.join(CORPUS_PATH, r"TokenizedFile")
+TOKENIZED_CORPUS_PATH = os.path.join("TokenizedFile")
 ps = string.punctuation
 trans = str.maketrans(ps, "                                ")
 
