@@ -1,27 +1,26 @@
 import Indexer
 import io
 import os
-# from pprint import pprint
-# from collections import Counter
-import sys
 import math
 import string
-import re
-import traceback
+from collections import Counter
 
 # GLOBAL CONSTANTS
 CURRENT_DIR = os.getcwd()
 
+ps = string.punctuation
+trans = str.maketrans(ps, "                                ")
 RUN_OUTPUTS_DIR = os.path.join(CURRENT_DIR, "Outputs")
-RETRIEVAL_MODEL = ""
 DOC_TOKEN_COUNT = {}
 INVERTED_INDEX = {}
 QUERY_ID = 0
 
+with open("common_words", 'r') as f:
+    STOP_WORDS = f.read().splitlines()
 
-def average_doc_length():
-    """Returns the average document length for the documents in this input corpus."""
 
+def avg_doc_len():
+    # Returns the average document length for the documents in this input corpus
     total_length = 0
     for doc in DOC_TOKEN_COUNT:
         total_length += DOC_TOKEN_COUNT[doc]
@@ -29,26 +28,34 @@ def average_doc_length():
     return float(total_length) / float(len(DOC_TOKEN_COUNT))
 
 
-def read_relevance_info():
-    try:
-        relevant_docs = []
-        rel_docs_in_corpus = []
-        with io.open("cacm.rel.txt", 'r', encoding="utf-8") as relevance_file:
+def query_index(sent_q):
+    q_words = sent_q.lower().split()
+    index = {}
+    for word in q_words:
+        if word in INVERTED_INDEX:
+            index[word] = INVERTED_INDEX[word]
+        else:
+            index[word] = {}
 
-            for line in relevance_file.readlines():
-                values = line.split()
-                if values and (values[0] == str(QUERY_ID)):
-                    relevant_docs.append(values[2])
-            for doc_id in DOC_TOKEN_COUNT:
-                if doc_id in relevant_docs:
-                    rel_docs_in_corpus.append(doc_id)
-
-        return rel_docs_in_corpus
-    except Exception as e:
-        print(traceback.format_exc())
+    return index
 
 
-def relevant_doc_count(docs_with_term, relevant_docs):
+def read_rel_info():
+    relevant_docs = []
+    rel_docs_in_corpus = []
+    with io.open("cacm.rel.txt", 'r', encoding="utf-8") as relevance_file:
+        for line in relevance_file.readlines():
+            values = line.split()
+            if values and (values[0] == str(QUERY_ID)):
+                relevant_docs.append(values[2])
+        for doc_id in DOC_TOKEN_COUNT:
+            if doc_id in relevant_docs:
+                rel_docs_in_corpus.append(doc_id)
+
+    return rel_docs_in_corpus
+
+
+def rel_doc_count(docs_with_term, relevant_docs):
     count = 0
     for doc_id in docs_with_term:
         if doc_id in relevant_docs:
@@ -56,37 +63,32 @@ def relevant_doc_count(docs_with_term, relevant_docs):
     return count
 
 
-def BM25_score(fetched_index, query_term_freq):
-    """Computes BM25 scores for all documents in the given index.
-    Returns a map of the document ids with thier BM25 score."""
-
+def BM25_score(new_q):
+    # Computes BM25 scores for all documents in the given index
+    # Returns a map of the document ids with their BM25 score
+    new_q = new_q.lower()
     DOC_SCORE = {}
+    rel_docs = read_rel_info()
+    R = len(rel_docs)
+    q_tf = Counter(new_q.split())
+    new_q_index = query_index(new_q)
 
-    # Initialize all docs with score = 0
-    # for doc in DOC_TOKEN_COUNT:
-    #    DOC_SCORE[doc] = 0
-
-    relevant_docs = read_relevance_info()
-    R = len(relevant_docs)
-
-    avdl = average_doc_length()
+    avdl = avg_doc_len()
     N = len(DOC_TOKEN_COUNT)
     k1 = 1.2
     k2 = 100
     b = 0.75
 
-    for query_term in query_term_freq:
-
-        qf = query_term_freq[query_term]
-        n = len(fetched_index[query_term])
+    for query_term in new_q.split():
+        qf = q_tf[query_term]
+        n = len(new_q_index[query_term])
         if query_term in INVERTED_INDEX:
-            r = relevant_doc_count(INVERTED_INDEX[query_term], relevant_docs)
+            r = rel_doc_count(INVERTED_INDEX[query_term], rel_docs)
         else:
             r = 0
         dl = 0
-        for doc in fetched_index[query_term]:
-
-            f = fetched_index[query_term][doc]
+        for doc in new_q_index[query_term]:
+            f = new_q_index[query_term][doc]
             if doc in DOC_TOKEN_COUNT:
                 dl = DOC_TOKEN_COUNT[doc]
             K = k1 * ((1 - b) + (b * (float(dl) / float(avdl))))
@@ -98,100 +100,32 @@ def BM25_score(fetched_index, query_term_freq):
             else:
                 DOC_SCORE[doc] = (relevance_part * k1_part * k2_part)
 
-    # return doc scores in descending order.
+    # return doc scores
     return DOC_SCORE
 
 
-def output_to_file(doc_scores, query_id):
-    """Prints the output scores into a textfile."""
-
-    output_file = os.path.join(RUN_OUTPUTS_DIR, RETRIEVAL_MODEL + "Run.txt")
-    rank = 0
-
-    with io.open(output_file, "a+") as textfile:
-        sorted_scores = [(k, doc_scores[k]) for k in sorted(doc_scores, key=doc_scores.get, reverse=True)]
-        for i in range(min(len(sorted_scores), 100)):
-            k, v = sorted_scores[i]
-            rank += 1
-            textfile.write(
-                str(query_id) + " " + "Q0 " + k + " " + str(rank) + " " + str(v) + " " + RETRIEVAL_MODEL + "Model\n")
-
-
-def query_matching_index(query_term_freq):
-    """Fetches only those inverted lists from the index, that correspond to the query terms."""
-
-    fetched_index = {}
-    for term in query_term_freq:
-        if term in INVERTED_INDEX:
-            fetched_index[term] = INVERTED_INDEX[term]
-        else:
-            fetched_index[term] = {}
-
-    return fetched_index
-
-
-def query_term_freq_map(query):
-    """Returns a map of query terms and their corresponding frequency in the query."""
-
-    query_terms = query.split()
-    query_term_freq = {}
-    for term in query_terms:
-        if term not in query_term_freq:
-            query_term_freq[term] = 1
-        else:
-            query_term_freq[term] += 1
-    return query_term_freq
-
-
-def extract_queries_from_file():
-    '''Read all queries from given file.'''
-    extracted_queries = []
-    raw_queries = open("cacm.query.txt", 'r').read()
-    while raw_queries.find('<DOC>') != -1:
-        query, raw_queries = extract_first_query(raw_queries)
-        extracted_queries.append(query.lower())
-    return extracted_queries
-
-
-def extract_first_query(raw_queries):
-    transformed_query = []
-    query = raw_queries[raw_queries.find('</DOCNO>') + 8:raw_queries.find('</DOC>')]
-    query = str(query).strip()
-
-    query_terms = query.split()
-
-    for term in query_terms:
-        transformed_term = term.strip(string.punctuation)
-        transformed_term = re.sub(r'[^a-zA-Z0-9\-,.–]', '', str(transformed_term))
-        if transformed_term != '':
-            transformed_query.append(transformed_term)
-
-    query = " ".join(transformed_query)
-    raw_queries = raw_queries[raw_queries.find('</DOC>') + 6:]
-    return query, raw_queries
-
-
-def QLM_score(fetched_index, query_term_freq):
-    """Computes QLM scores for all documents in the given index.
-    Returns a map of the document ids with thier QLM score."""
+def QLM_score(new_q):
+    # Computes QLM scores for all documents in the given index
+    # Returns a map of the document ids with their QLM score
 
     DOC_SCORE_QLM = {}
     C = 0
     lambda_value = 0.35
+    new_q_index = query_index(new_q)
 
     # Initialize all docs with score = 0
     for doc in DOC_TOKEN_COUNT:
         # DOC_SCORE_QLM[doc] = 0
         C = C + DOC_TOKEN_COUNT[doc]  # total number of words in collection
 
-    for query_term in query_term_freq:
+    for query_term in new_q.split():
         cq = 0
-        for doc in fetched_index[query_term]:
-            cq = cq + fetched_index[query_term][doc]  # total occurance of query term in collection
+        for doc in new_q_index[query_term]:
+            cq = cq + new_q_index[query_term][doc]  # total occurrence of query term in collection
 
-        for doc in fetched_index[query_term]:
+        for doc in new_q_index[query_term]:
             D = DOC_TOKEN_COUNT[doc]  # total number of words in doc
-            fq = fetched_index[query_term][doc]  # total occurance of query term in doc
+            fq = new_q_index[query_term][doc]  # total occurrence of query term in doc
             first_part = float(1 - lambda_value) * (fq / D)
             second_part = float(lambda_value) * (cq / C)
             if doc in DOC_SCORE_QLM:
@@ -203,127 +137,80 @@ def QLM_score(fetched_index, query_term_freq):
     return DOC_SCORE_QLM
 
 
-def tfidf_score(fetched_index, query_term_freq):
-    """Computes tf-idf scores for all documents in the given index.
-    Returns a map of the document ids with thier tfidf score."""
+def tfidf_score(new_q):
+    # Computes tf-idf scores for all documents in the given index
+    # Returns a map of the document ids with their tfidf score
 
     DOC_SCORE_TFIDF = {}
     tf_idf_dict = {}
+    new_q_index = query_index(new_q)
 
-    for term in fetched_index:
-        idf = 1.0 + math.log(float(len(DOC_TOKEN_COUNT)) / float(len(fetched_index[term].keys()) + 1))
-        for doc_id in fetched_index[term]:
-            tf = float(fetched_index[term][doc_id]) / float(DOC_TOKEN_COUNT[doc_id])
+    for term in new_q_index:
+        idf = 1.0 + math.log(float(len(DOC_TOKEN_COUNT)) / float(len(new_q_index[term].keys()) + 1))
+        for doc_id in new_q_index[term]:
+            tf = float(new_q_index[term][doc_id]) / float(DOC_TOKEN_COUNT[doc_id])
             if term not in tf_idf_dict:
                 tf_idf_dict[term] = {}
             tf_idf_dict[term][doc_id] = tf * idf
 
-    for term in fetched_index:
-        for doc in fetched_index[term]:
+    for term in new_q_index:
+        for doc in new_q_index[term]:
             doc_weight = 0
             doc_weight = doc_weight + tf_idf_dict[term][doc]  # get_doc_weight(doc,fetched_index,tf_idf_dict)
             if doc in DOC_SCORE_TFIDF:
                 doc_weight = doc_weight + DOC_SCORE_TFIDF[doc]
             DOC_SCORE_TFIDF.update({doc: doc_weight})
 
-    # return doc scores in descending order.
+    # return doc scores
     return DOC_SCORE_TFIDF
 
 
-def get_doc_weight(doc, fetched_index, tf_idf_dict):
-    doc_weight = 0
-    for term in tf_idf_dict:
-        if doc in tf_idf_dict[term]:
-            doc_weight += tf_idf_dict[term][doc]
-    return doc_weight
+def write_to_file(doc_scores, q_id, output_file):
+    # Write output scores to a text file
+
+    rank = 0
+    with open("Outputs/" + output_file + ".txt", "a+") as out_file:
+        # Counter(doc_scores).most_common(100):
+        sorted_scores = [(k, doc_scores[k]) for k in sorted(doc_scores, key=doc_scores.get, reverse=True)]
+        for i in range(1, min(len(sorted_scores), 101)):
+            doc, score = sorted_scores[i]
+            rank += 1
+            out_file.write(str(q_id) + " Q0 " + doc + " " + str(rank) + " " + str(score) + " " + output_file + "\n")
 
 
-def compute_doc_scores(fetched_index, query_term_freq):
-    '''Decides scoring algorithm based on user desired retrieval model.'''
-    global RETRIEVAL_MODEL
-
-    if RETRIEVAL_MODEL == "BM25Relevance":
-        return BM25_score(fetched_index, query_term_freq)
-
-    elif RETRIEVAL_MODEL == "TFIDF":
-        return tfidf_score(fetched_index, query_term_freq)
-
-    # else it is "QL" model
-    else:
-        return QLM_score(fetched_index, query_term_freq)
-
-
-def set_retrieval_model(user_choice):
-    '''Sets vale of RETRIEVAL_MODEL algorithm based on user input.'''
-    global RETRIEVAL_MODEL
-
-    if user_choice == "1":
-        RETRIEVAL_MODEL = "BM25Relevance"
-
-    elif user_choice == "2":
-        RETRIEVAL_MODEL = "TFIDF"
-
-    # else it is "3"
-    else:
-        RETRIEVAL_MODEL = "QL"
-
-
-def main():
-    print("--- RETRIEVER ---")
-    print("Select")
-    print("1 for BM25")
-    print("2 for tf-idf")
-    print("3 for Query Likelihood Model")
-    user_choice = input("Enter your choice: ")
-    if user_choice not in ["1", "2", "3"]:
-        print("\nInvalid input. Aborting . .")
-        sys.exit()
-
-    # sets "RETRIEVAL_MODEL" to the user chosen model.
-    set_retrieval_model(user_choice)
-
-    # Create a directory to save the results.
-    # and overwrite existing run file, if any
-    os.makedirs(RUN_OUTPUTS_DIR, exist_ok=True)
-    global RETRIEVAL_MODEL
-    output_file = os.path.join(RUN_OUTPUTS_DIR, RETRIEVAL_MODEL + "Run.txt")
-    if os.path.exists(output_file):
-        os.remove(output_file)
-
-    # Generate the unigram index.
-    # By default, not performing stopping.
-    # So send False
+if __name__ == '__main__':
     Indexer.unigram_index(False)
-
-    # Fetch the index generated.
-    global INVERTED_INDEX
     INVERTED_INDEX = Indexer.INVERTED_INDEX
-    global DOC_TOKEN_COUNT
     DOC_TOKEN_COUNT = Indexer.DOC_TOKEN_COUNT
 
-    # Read all queries.
-    queries = extract_queries_from_file()
+    query_file = open("cacm.query.txt", 'r')
+    queries = []
+    query = ""
+    for line in query_file.readlines():
+        if line == "\n":
+            continue
+        if line.startswith("<DOCNO>") or line.startswith("<DOC>"):
+            continue
+        if line.startswith("</DOC>"):
+            queries.append(query.strip().lower())
+            query = ""
+            continue
+        query += " " + line.rstrip("\n").strip().translate(trans)
 
-    global QUERY_ID
-    for query in queries:
+    for q in queries:
         QUERY_ID += 1
+        scores = BM25_score(q)
+        OUTPUT_FILE = "BM25RelevanceRun"
+        write_to_file(scores, QUERY_ID, OUTPUT_FILE)
 
-        # Dictionary of query term frequency
-        query_term_freq = query_term_freq_map(query)
+        scores = tfidf_score(q)
+        OUTPUT_FILE = "TFIDFRun"
+        write_to_file(scores, QUERY_ID, OUTPUT_FILE)
 
-        # Fetch the inverted indexes corresponding to the terms
-        # in the query.
-        fetched_index = query_matching_index(query_term_freq)
+        scores = QLM_score(q)
+        OUTPUT_FILE = "QLRun"
+        write_to_file(scores, QUERY_ID, OUTPUT_FILE)
 
-        # Compute ranking scores of all docs for this query.
-        doc_scores = compute_doc_scores(fetched_index, query_term_freq)
-
-        # Write results to a textfile.
-        output_to_file(doc_scores, QUERY_ID)
-
-        print("Completed Retrieval for query : " + query)
+        print("Completed Retrieval for query : " + q)
 
     print("End of Retrieval.")
-
-
-main()

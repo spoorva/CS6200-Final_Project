@@ -130,7 +130,7 @@ def BM25_score(new_q):
             else:
                 DOC_SCORE[doc] = (relevance_part * k1_part * k2_part)
 
-    # return doc scores in descending order.
+    # return doc scores
     return DOC_SCORE
 
 
@@ -176,7 +176,8 @@ if __name__ == '__main__':
 
         # Add high assoc terms to query
         for w in high_assoc_q:
-            q += " " + w
+            if w not in q:
+                q += " " + w
 
         # Remove stop words
         stopped_q = stop_query(q)
