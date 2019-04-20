@@ -152,10 +152,8 @@ def tfidf_score(new_q):
 
 def write_to_file(doc_scores, q_id, model):
     # Write output scores to a text file
-
     rank = 0
     with open("Outputs/" + model + ".txt", "a+") as out_file:
-        # Counter(doc_scores).most_common(100):
         sorted_scores = [(k, doc_scores[k]) for k in sorted(doc_scores, key=doc_scores.get, reverse=True)]
         for i in range(1, min(len(sorted_scores), 101)):
             doc, score = sorted_scores[i]
@@ -199,11 +197,9 @@ if __name__ == '__main__':
 
         # Calculating BM25 scores for the stopped query
         scores = BM25_score(new_q)
-        model = models[0]
-        write_to_file(scores, QUERY_ID, model)
+        write_to_file(scores, QUERY_ID, models[0])
 
         scores = tfidf_score(new_q)
-        model = models[1]
-        write_to_file(scores, QUERY_ID, model)
+        write_to_file(scores, QUERY_ID, models[1])
 
         print("Completed retrieval for - query", QUERY_ID, q)
