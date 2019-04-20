@@ -171,7 +171,8 @@ if __name__ == '__main__':
 
     models = ["StoppedIndexWithBM25", "StoppedIndexWithTFIDF"]
     for model in models:
-        if os.path.exists("Outputs/" + model + ".txt"):
+        OUTPUT_FILE = "Outputs/" + model + ".txt"
+        if os.path.exists(OUTPUT_FILE):
             os.remove(OUTPUT_FILE)
 
     query_file = open("cacm.query.txt", 'r')
