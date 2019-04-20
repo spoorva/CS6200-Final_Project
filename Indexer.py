@@ -5,15 +5,16 @@ import Parser
 # GLOBAL CONSTANTS
 DOC_TOKEN_COUNT = {}
 INVERTED_INDEX = {}
-STOP_WORDS = []
+
+# Read the list of stopwords.
+with open('common_words') as f:
+    STOP_WORDS = f.read().splitlines()
 
 
 def unigram_index(stopping):
     # Generates a unigram index from the tokenized output from Parser
     # If 'stopping' is True, does not index stop words
-    # Read the list of stopwords.
-    with open('common_words') as f:
-        STOP_WORDS = f.read().splitlines()
+
     # Invokes Parser to parse the raw html files,
     # and generate tokens
     Parser.main()
@@ -28,7 +29,7 @@ def unigram_index(stopping):
 
         for token in tokens:
 
-            if stopping == True:
+            if stopping:
                 if token not in STOP_WORDS:
                     index_token(token, doc_name)
             else:
@@ -53,10 +54,6 @@ def output_index_to_file(filename):
 
 
 def main(stopping):
-    # Read the list of stopwords.
-    with open('common_words') as f:
-        STOP_WORDS = f.read().splitlines()
-
     # Generating unigram index.
     # Pass 'stopping' as true if stopping is to be performed,
     # else pass false.
