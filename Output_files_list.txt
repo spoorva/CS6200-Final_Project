@@ -1,0 +1,12 @@
+TFIDF	Outputs/TFIDFRun.txt
+BM25	Outputs/BM25RelevanceRun.txt
+QLM	Outputs/QLRun.txt
+Lucene	Outputs/LuceneRun.txt
+QueryTimeStem Outputs/QueryTimeStemWithBM25.txt
+PseudoRel	Outputs/PseudoRelevanceWithBM25.txt
+StpdInd_BM25	Outputs/StoppedIndexWithBM25.txt
+StpdInd_TFIDF	Outputs/StoppedIndexWithTFIDF.txt
+StemInd_BM25	Outputs/StemmingIndexWithBM25.txt
+StemInd_TFIDF	Outputs/StemmingIndexWithTFIDF.txt
+QEWS	Outputs/Phase3RunOutput.txt
+KL_Div	Outputs/ExtraCredit_KL_Div.txt
