@@ -35,6 +35,8 @@ def unigram_index(stopping):
             else:
                 index_token(token, doc_name)
 
+    print("Completed Indexing!")
+
 
 def index_token(token, doc_name):
     if token not in INVERTED_INDEX:
