@@ -1,0 +1,2 @@
+MAP for PseudoRel is: 0.14577992949231197
+MRR for PseudoRel is: 0.49797893938277066

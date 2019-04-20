@@ -1,0 +1,2 @@
+MAP for StemInd_BM25 is: 0.0
+MRR for StemInd_BM25 is: 0.0

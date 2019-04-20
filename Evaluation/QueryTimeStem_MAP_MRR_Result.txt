@@ -1,0 +1,2 @@
+MAP for QueryTimeStem is: 0.2098615808909648
+MRR for QueryTimeStem is: 0.5291719131562882
