@@ -8,7 +8,7 @@ ps = string.punctuation
 trans = str.maketrans(ps, "                                ")
 INVERTED_INDEX = {}
 QUERY_ID = 0
-OUTPUT_FILE = "Outputs/PseudoRelevance.txt"
+OUTPUT_FILE = "Outputs/PseudoRelevanceWithBM25.txt"
 
 with open("common_words", 'r') as f:
     STOP_WORDS = f.read().splitlines()
