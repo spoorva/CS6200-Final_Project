@@ -75,7 +75,8 @@ Run the following command - <br>
 Phase3Run.py <br><br>
 
 <b> Evaluation </b><br>
-Evaluating the various runs based on MAP, MRR, Precision, Recall, Precision @5 and @20 and Recall @5 and @20
+Evaluating the various runs based on MAP, MRR, Precision, Recall, Precision @5 and @20 and Recall @5 and @20. <br>
+Reads the list of runs to be evaluated from a file named Output_files_list.txt.
 
 Run the following command - <br>
 Evaluation.py<br><br>
