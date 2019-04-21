@@ -1,5 +1,6 @@
 import os
 from tabulate import tabulate
+import xlsxwriter
 
 OUTPUT_DIR = "Evaluation/"
 OUTPUT = []
@@ -9,7 +10,7 @@ def evaluation(run, file):
     rel_jdmt_docs = {}
     query_doc = {}
     queries = []
-    rel_doc = {} 
+    rel_doc = {}
 
     cacm_rel = open("cacm.rel.txt", "r")
     # Creates a rel_jdmt_docs dictionary that maps the query to the total number of relevant documents
@@ -32,6 +33,7 @@ def evaluation(run, file):
     out_file = open(OUTPUT_DIR + run + "_result.txt", "w")
     # The format in which the outputs are required.
     out_file.write("Query \t Document \t Ranking \t R/N \t Precision \t\tRecall" + "\n")
+    worksheet.write_row(0, 0, ["Query", "Document", "Ranking", "R/N", "Precision", "Recall"])
     in_file = open(file, "r")
     # Computes all the queries and stores it in queries.
     for line in in_file:
@@ -65,6 +67,7 @@ def evaluation(run, file):
     # Computing precision, recall, precision at 5, precision at 20, reciprocal ranking and average precision
     # for all the queries.
     for i, tokens in query_doc.items():
+        row = int(i)*100-99
         for token2 in tokens:
             retrieved[i] = retrieved[i] + 1
             rn = "N"
@@ -89,6 +92,9 @@ def evaluation(run, file):
             # Prints the output to a file
             out_file.write(str(i) + "\t\t " + str(token2) + "\t\t" + str(retrieved[i]) + "\t\t  " + str(
                 rn) + " \t\t%.2f" % precision[i] + "\t\t %.2f" % recall[i] + "\n")
+            worksheet.write_row(row, 0, [i, token2, retrieved[i], rn, precision[i], recall[i]])
+            row += 1
+
         out_file.write("P@5 for query " + str(i) + " is: " + str(prec_5[i]) + "\n")
         out_file.write("P@20 for query " + str(i) + " is: " + str(prec_20[i]) + "\n")
     out_file.close()
@@ -120,8 +126,12 @@ if __name__ == '__main__':
         os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     f_out = open("Evaluation/MAP_MRR_Evaluation_Summary.txt", 'w')
+    summary_wb = xlsxwriter.Workbook('Evaluation/Evaluation_Compiled.xlsx')
+
     for line in files:
         run, file = line.strip().split("\t")
+        worksheet = summary_wb.add_worksheet(run)
         evaluation(run, file)
 
     f_out.write(tabulate(OUTPUT, headers=["System Name", "MAP", "MRR"], showindex=True))
+    summary_wb.close()
