@@ -10,7 +10,7 @@ CURRENT_DIR = os.getcwd()
 
 ps = string.punctuation
 trans = str.maketrans(ps, "                                ")
-RUN_OUTPUTS_DIR = os.path.join(CURRENT_DIR, "Outputs")
+OUTPUT_DIR = "Outputs/"
 DOC_TOKEN_COUNT = {}
 INVERTED_INDEX = {}
 QUERY_ID = 0
@@ -169,7 +169,7 @@ def write_to_file(doc_scores, q_id, output_file):
     # Write output scores to a text file
 
     rank = 0
-    with open("Outputs/" + output_file + ".txt", "a+") as out_file:
+    with open(OUTPUT_DIR + output_file + ".txt", "a+") as out_file:
         # Counter(doc_scores).most_common(100):
         sorted_scores = [(k, doc_scores[k]) for k in sorted(doc_scores, key=doc_scores.get, reverse=True)]
         for i in range(1, min(len(sorted_scores), 101)):
@@ -182,6 +182,11 @@ if __name__ == '__main__':
     Indexer.unigram_index(False)
     INVERTED_INDEX = Indexer.INVERTED_INDEX
     DOC_TOKEN_COUNT = Indexer.DOC_TOKEN_COUNT
+
+    models = ["BM25RelevanceRun", "TFIDFRun", "QLRun"]
+    for model in models:
+        if os.path.exists(OUTPUT_DIR + model + ".txt"):
+            os.remove(OUTPUT_DIR + model + ".txt")
 
     query_file = open("cacm.query.txt", 'r')
     queries = []
@@ -200,15 +205,15 @@ if __name__ == '__main__':
     for q in queries:
         QUERY_ID += 1
         scores = BM25_score(q)
-        OUTPUT_FILE = "BM25RelevanceRun"
+        OUTPUT_FILE = models[0]
         write_to_file(scores, QUERY_ID, OUTPUT_FILE)
 
         scores = tfidf_score(q)
-        OUTPUT_FILE = "TFIDFRun"
+        OUTPUT_FILE = models[1]
         write_to_file(scores, QUERY_ID, OUTPUT_FILE)
 
         scores = QLM_score(q)
-        OUTPUT_FILE = "QLRun"
+        OUTPUT_FILE = models[2]
         write_to_file(scores, QUERY_ID, OUTPUT_FILE)
 
         print("Completed Retrieval for query : " + q)

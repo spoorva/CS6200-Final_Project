@@ -1,6 +1,8 @@
 import os
+from tabulate import tabulate
 
 OUTPUT_DIR = "Evaluation/"
+OUTPUT = []
 
 
 def evaluation(run, file):
@@ -22,6 +24,9 @@ def evaluation(run, file):
         # query for that term.
         rel_doc[elements[0] + elements[2]] = elements[3]
     cacm_rel.close()
+
+    if os.path.exists(OUTPUT_DIR + run + "_result.txt"):
+        os.remove(OUTPUT_DIR + run + "_result.txt")
 
     # Creates a file with the output retrieval model name+"result.txt"
     out_file = open(OUTPUT_DIR + run + "_result.txt", "w")
@@ -103,6 +108,7 @@ def evaluation(run, file):
     out_file.write("MRR for " + str(run) + " is: " + str(mrr) + "\n")
 
     out_file.close()
+    OUTPUT.append([run, mp, mrr])
 
 
 if __name__ == '__main__':
@@ -113,6 +119,9 @@ if __name__ == '__main__':
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+    f_out = open("Evaluation/MAP_MRR_Evaluation_Summary.txt", 'w')
     for line in files:
         run, file = line.strip().split("\t")
         evaluation(run, file)
+
+    f_out.write(tabulate(OUTPUT, headers=["System Name", "MAP", "MRR"], showindex=True))
