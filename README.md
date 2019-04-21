@@ -11,6 +11,25 @@ Shruti Parpattedar
 Language used - Python and Java <br>
 Coded in version - Python 3.7.2
 
+### Setup
+This code requires the following software packages installed for it to run successfully:
+<li> Python 3.7 <br>
+	Download and install from "https://www.python.org/downloads/"<br>
+<li> Lucene 4.7.2 <br>
+	Download and install Lucene from<br>
+	https://lucene.apache.org/ <br>
+	https://archive.apache.org/dist/lucene/java/4.7.2/
+<li> BeautifulSoup package <br>
+	Can be downloaded from "https://www.crummy.com/software/BeautifulSoup/" <br>
+	Can be installed using pip, by entering the following command in Terminal or Command Line :
+
+		 pip install beautifulsoup4
+
+### Compile and Run
+Unzip the given solution folder into a local directory. All necessary files required to run 
+this project will be extracted.
+
+
 ### Phase 1 - 
 <b>Task 1 - Four baseline runs </b><br>
 Implementation of TFIDF, Query Likelihood Model (JM smoothed) and BM25 using python. The program internally 
@@ -67,7 +86,11 @@ KL-Divergence for scoring. The program internally call Indexer.py and Parser.py 
 the corpus.
 
 Run the following command - <br>
-KL_Divergence.py
+KL_Divergence.py<br>
+
+
+<b><i> All the outputs are stored in the Outputs Folder and all the evaluation results, along with
+ the compiled evaluations and MAP-MRR summary are stored in Evaluation folder.<b><i>
 
 
 
